@@ -2,14 +2,12 @@ import streamlit as st
 import pandas as pd
 import json
 import requests
+import matplotlib.pyplot as plt
 
 #setup openrouter, use st.secrets if hosted,cloud
 OPENROUTER_API_KEY = st.secrets.get("OPENROUTER_API_KEY")
 
-
-
 # st.sidebar.text_input("Enter your OpenRouter API Key", type="password") ; demo
-
 
 if not OPENROUTER_API_KEY:
     st.warning("Please enter your OpenRouter API key to proceed.")
@@ -23,10 +21,8 @@ HEADERS = {
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
 MODEL = "mistralai/mistral-7b-instruct"
 
-
-
 #todochangepromptaccto escalate and ignore
-SYSTEM_PROMPT = """
+SYSTEM_PROMPT_BASE = """
 You are a helpful AI assistant for a B2B sales team. Your goal is to classify and respond to incoming leads based on message content.
 
 Rules:
@@ -64,14 +60,14 @@ Return the output in this strict JSON format:
 }}
 """
 
-
 #fixlater
-def process_lead(name, email, message):
+def process_lead(name, email, message, tone):
     prompt = USER_PROMPT_TEMPLATE.format(name=name, email=email, message=message)
+    tone_instruction = f"\nReply tone preference: {tone}." if tone != "Default" else ""
     payload = {
         "model": MODEL,
         "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": SYSTEM_PROMPT_BASE + tone_instruction},
             {"role": "user", "content": prompt}
         ]
     }
@@ -97,13 +93,18 @@ def detect_spam(text):
 st.set_page_config(page_title="lead-qualification AI", layout="wide")
 st.title("Lead Qualification AI Agent")
 
-
 #add emojisin sidebar
 st.sidebar.title("Filters")
 st.sidebar.caption("by rohn.")
 
 show_sample = st.radio("Show Sample Preview?", ["Yes", "No"], index=0)
 file = st.file_uploader("Upload a CSV with Name, Email, Message", type="csv")
+
+# reply tone dropdown
+reply_tone = st.sidebar.selectbox("Reply Tone", ["Default", "Formal", "Friendly", "Empathetic"])
+
+# pie chart toggle
+show_pie = st.sidebar.checkbox("Show Pie Chart Summary", value=False)
 
 # add demomode or session restbutton, session reset button for file upload
 if file:
@@ -125,7 +126,7 @@ if file:
             results = []
             bar = st.progress(0)
             for i, row in df.iterrows():
-                res = process_lead(row["Name"], row["Email"], row["Message"])
+                res = process_lead(row["Name"], row["Email"], row["Message"], reply_tone)
                 res.update({
                     "Name": row["Name"],
                     "Email": row["Email"],
@@ -157,7 +158,6 @@ if file:
     st.subheader("📋 Filtered Leads")
     st.dataframe(filtered, use_container_width=True)
 
-    
     for i, row in filtered.iterrows():
         if row["AI Reply"]:
             with st.expander(f"✉️ Reply to {row['Name']} ({row['Email']})"):
@@ -166,6 +166,14 @@ if file:
     # todo:remove summarycolumn due to omission
     final_csv = df_result[["Name", "Email", "Message", "Qualification", "Action", "AI Reply", "Spam"]]
     st.download_button("⬇️ Download Results", final_csv.to_csv(index=False).encode("utf-8"), "qualified_leads.csv")
+
+    # small pie chart below everything
+    if show_pie:
+        st.subheader("📈 Lead Qualification Breakdown (Pie Chart)")
+        fig, ax = plt.subplots(figsize=(3, 3))
+        ax.pie(counts, labels=counts.index, autopct='%1.1f%%', startangle=140)
+        ax.axis('equal')
+        st.pyplot(fig)
 
 else:
     st.info("please upload a CSV to begin.")
