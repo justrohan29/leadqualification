@@ -100,8 +100,8 @@ st.sidebar.caption("by rohn.")
 show_sample = st.radio("Show Sample Preview?", ["Yes", "No"], index=0)
 file = st.file_uploader("Upload a CSV with Name, Email, Message", type="csv")
 
-# reply tone dropdown
-reply_tone = st.sidebar.selectbox("Reply Tone", ["Default", "Formal", "Friendly", "Empathetic"])
+# reply tone additive, using textfield over checklist
+reply_tone = st.sidebar.text_input("Custom Reply Tone (e.g. 'formal and friendly')", value="")
 
 # pie chart toggle
 show_pie = st.sidebar.checkbox("Show Pie Chart Summary", value=False)
