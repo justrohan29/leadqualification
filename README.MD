@@ -14,6 +14,8 @@ This is a simple Streamlit app that helps you qualify leads from a CSV file usin
 - Filter leads by quality
 - Download the processed results
 - No database needed — works entirely in memory
+- Toggleable Analytics Pie Chart for visual overview
+- Customizable Reply Tone via sidebar input field
 
 ---
 
